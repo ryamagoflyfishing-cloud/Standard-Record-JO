@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <!-- ↓ スマホで入力時に勝手にズームされたり画面が崩れるのを防ぐ魔法の1行 ↓ -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>JO標準記録検索アプリ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50 m-0 p-0 overflow-x-hidden">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    const DEFAULT_CSV_DATA = `水路,性別,年齢区分,種目,距離,タイム
+短水路,男子,９歳以下,自由形,50,31.00
+長水路,男子,９歳以下,自由形,50,31.56
+短水路,女子,９歳以下,自由形,50,31.30
+長水路,女子,９歳以下,自由形,50,31.87
+短水路,男子,９歳以下,平泳ぎ,50,39.58
+長水路,男子,９歳以下,平泳ぎ,50,40.53
+短水路,女子,９歳以下,平泳ぎ,50,40.24
+長水路,女子,９歳以下,平泳ぎ,50,40.93
+短水路,男子,１０歳,自由形,50,29.86
+長水路,男子,１０歳,自由形,50,30.51
+短水路,女子,１０歳,自由形,50,29.90
+長水路,女子,１０歳,自由形,50,30.58
+短水路,男子,１０歳,平泳ぎ,50,37.66
+長水路,男子,１０歳,平泳ぎ,50,38.82
+短水路,女子,１０歳,平泳ぎ,50,37.81
+長水路,女子,１０歳,平泳ぎ,50,38.54
+短水路,男子,１１歳,自由形,50,27.77
+長水路,男子,１１歳,自由形,50,28.51
+短水路,女子,１１歳,自由形,50,28.41
+長水路,女子,１１歳,自由形,50,28.84
+短水路,男子,１１歳,平泳ぎ,50,34.49
+長水路,男子,１１歳,平泳ぎ,50,35.60
+短水路,女子,１１歳,平泳ぎ,50,35.22
+長水路,女子,１１歳,平泳ぎ,50,36.16
+短水路,男子,１２歳,自由形,50,26.34
+長水路,男子,１２歳,自由形,50,27.11
+短水路,女子,１２歳,自由形,50,27.72
+長水路,女子,１２歳,自由形,50,28.25
+短水路,男子,１２歳,平泳ぎ,50,32.81
+長水路,男子,１２歳,平泳ぎ,50,33.69
+短水路,女子,１２歳,平泳ぎ,50,34.69
+長水路,女子,１２歳,平泳ぎ,50,35.30
+短水路,男子,１３歳,自由形,50,24.84
+長水路,男子,１３歳,自由形,50,25.62
+短水路,女子,１３歳,自由形,50,26.99
+長水路,女子,１３歳,自由形,50,27.55
+短水路,男子,１３歳,平泳ぎ,50,30.73
+長水路,男子,１３歳,平泳ぎ,50,32.18
+短水路,女子,１３歳,平泳ぎ,50,33.39
+長水路,女子,１３歳,平泳ぎ,50,34.42
+短水路,男子,CS,自由形,50,22.98
+長水路,男子,CS,自由形,50,23.95
+短水路,女子,CS,自由形,50,26.21
+長水路,女子,CS,自由形,50,26.88
+短水路,男子,CS,平泳ぎ,50,28.33
+長水路,男子,CS,平泳ぎ,50,29.91
+短水路,女子,CS,平泳ぎ,50,32.41
+長水路,女子,CS,平泳ぎ,50,33.68
+短水路,男子,１４歳,自由形,50,24.14
+長水路,男子,１４歳,自由形,50,25.06
+短水路,女子,１４歳,自由形,50,26.79
+長水路,女子,１４歳,自由形,50,27.38
+短水路,男子,１４歳,平泳ぎ,50,29.83
+長水路,男子,１４歳,平泳ぎ,50,31.11
+短水路,女子,１４歳,平泳ぎ,50,32.90
+長水路,女子,１４歳,平泳ぎ,50,33.91
+短水路,男子,１５〜１６歳,自由形,50,23.40
+長水路,男子,１５〜１６歳,自由形,50,24.24
+短水路,女子,１５〜１６歳,自由形,50,26.23
+長水路,女子,１５〜１６歳,自由形,50,26.89
+短水路,男子,１５〜１６歳,平泳ぎ,50,28.47
+長水路,男子,１５〜１６歳,平泳ぎ,50,29.69
+短水路,女子,１５〜１６歳,平泳ぎ,50,32.17
+長水路,女子,１５〜１６歳,平泳ぎ,50,33.24
+短水路,男子,９歳以下,バタフライ,50,33.35
+長水路,男子,９歳以下,バタフライ,50,33.69
+短水路,女子,９歳以下,バタフライ,50,33.58
+長水路,女子,９歳以下,バタフライ,50,34.21
+短水路,男子,９歳以下,背泳ぎ,50,35.18
+長水路,男子,９歳以下,背泳ぎ,50,36.70
+短水路,女子,９歳以下,背泳ぎ,50,35.67
+長水路,女子,９歳以下,背泳ぎ,50,36.85
+短水路,男子,１０歳,バタフライ,50,32.09
+長水路,男子,１０歳,バタフライ,50,32.55
+短水路,女子,１０歳,バタフライ,50,32.13
+長水路,女子,１０歳,バタフライ,50,32.64
+短水路,男子,１０歳,背泳ぎ,50,34.05
+長水路,男子,１０歳,背泳ぎ,50,35.20
+短水路,女子,１０歳,背泳ぎ,50,33.87
+長水路,女子,１０歳,背泳ぎ,50,35.02
+短水路,男子,１１歳,バタフライ,50,29.75
+長水路,男子,１１歳,バタフライ,50,30.58
+短水路,女子,１１歳,バタフライ,50,30.32
+長水路,女子,１１歳,バタフライ,50,30.63
+短水路,男子,１１歳,背泳ぎ,50,31.31
+長水路,男子,１１歳,背泳ぎ,50,32.67
+短水路,女子,１１歳,背泳ぎ,50,31.76
+長水路,女子,１１歳,背泳ぎ,50,32.88
+短水路,男子,１２歳,バタフライ,50,28.20
+長水路,男子,１２歳,バタフライ,50,28.90
+短水路,女子,１２歳,バタフライ,50,29.58
+長水路,女子,１２歳,バタフライ,50,30.02
+短水路,男子,１２歳,背泳ぎ,50,29.84
+長水路,男子,１２歳,背泳ぎ,50,31.20
+短水路,女子,１２歳,背泳ぎ,50,31.00
+長水路,女子,１２歳,背泳ぎ,50,32.12
+短水路,男子,１３歳,バタフライ,50,26.96
+長水路,男子,１３歳,バタフライ,50,27.81
+短水路,女子,１３歳,バタフライ,50,28.47
+長水路,女子,１３歳,バタフライ,50,29.21
+短水路,男子,１３歳,背泳ぎ,50,28.22
+長水路,男子,１３歳,背泳ぎ,50,29.58
+短水路,女子,１３歳,背泳ぎ,50,29.62
+長水路,女子,１３歳,背泳ぎ,50,30.95
+短水路,男子,CS,バタフライ,50,24.35
+長水路,男子,CS,バタフライ,50,25.78
+短水路,女子,CS,バタフライ,50,27.60
+長水路,女子,CS,バタフライ,50,28.62
+短水路,男子,CS,背泳ぎ,50,25.56
+長水路,男子,CS,背泳ぎ,50,27.31
+短水路,女子,CS,背泳ぎ,50,28.65
+長水路,女子,CS,背泳ぎ,50,30.35
+短水路,男子,１４歳,バタフライ,50,25.96
+長水路,男子,１４歳,バタフライ,50,26.87
+短水路,女子,１４歳,バタフライ,50,28.24
+長水路,女子,１４歳,バタフライ,50,28.98
+短水路,男子,１４歳,背泳ぎ,50,27.27
+長水路,男子,１４歳,背泳ぎ,50,28.61
+短水路,女子,１４歳,背泳ぎ,50,29.15
+長水路,女子,１４歳,背泳ぎ,50,30.34
+短水路,男子,１５〜１６歳,バタフライ,50,24.96
+長水路,男子,１５〜１６歳,バタフライ,50,25.79
+短水路,女子,１５〜１６歳,バタフライ,50,27.60
+長水路,女子,１５〜１６歳,バタフライ,50,28.45
+短水路,男子,１５〜１６歳,背泳ぎ,50,25.92
+長水路,男子,１５〜１６歳,背泳ぎ,50,27.23
+短水路,女子,１５〜１６歳,背泳ぎ,50,28.63
+長水路,女子,１５〜１６歳,背泳ぎ,50,29.93
+短水路,男子,１１歳,自由形,100,1:01.07
+長水路,男子,１１歳,自由形,100,1:02.67
+短水路,女子,１１歳,自由形,100,1:02.19
+長水路,女子,１１歳,自由形,100,1:03.22
+短水路,男子,１１歳,平泳ぎ,100,1:14.90
+長水路,男子,１１歳,平泳ぎ,100,1:17.77
+短水路,女子,１１歳,平泳ぎ,100,1:16.60
+長水路,女子,１１歳,平泳ぎ,100,1:18.73
+短水路,男子,１２歳,自由形,100,58.15
+長水路,男子,１２歳,自由形,100,59.22
+短水路,女子,１２歳,自由形,100,1:00.71
+長水路,女子,１２歳,自由形,100,1:01.36
+短水路,男子,１２歳,平泳ぎ,100,1:10.95
+長水路,男子,１２歳,平泳ぎ,100,1:13.08
+短水路,女子,１２歳,平泳ぎ,100,1:14.81
+長水路,女子,１２歳,平泳ぎ,100,1:16.52
+短水路,男子,１３歳,自由形,100,54.74
+長水路,男子,１３歳,自由形,100,55.80
+短水路,女子,１３歳,自由形,100,58.73
+長水路,女子,１３歳,自由形,100,59.74
+短水路,男子,１３歳,平泳ぎ,100,1:06.59
+長水路,男子,１３歳,平泳ぎ,100,1:08.69
+短水路,女子,１３歳,平泳ぎ,100,1:12.22
+長水路,女子,１３歳,平泳ぎ,100,1:14.13
+短水路,男子,CS,自由形,100,50.05
+長水路,男子,CS,自由形,100,51.98
+短水路,女子,CS,自由形,100,56.97
+長水路,女子,CS,自由形,100,57.93
+短水路,男子,CS,平泳ぎ,100,1:01.28
+長水路,男子,CS,平泳ぎ,100,1:04.03
+短水路,女子,CS,平泳ぎ,100,1:09.98
+長水路,女子,CS,平泳ぎ,100,1:12.15
+短水路,男子,１４歳,自由形,100,53.00
+長水路,男子,１４歳,自由形,100,54.44
+短水路,女子,１４歳,自由形,100,58.28
+長水路,女子,１４歳,自由形,100,59.09
+短水路,男子,１４歳,平泳ぎ,100,1:04.36
+長水路,男子,１４歳,平泳ぎ,100,1:07.01
+短水路,女子,１４歳,平泳ぎ,100,1:12.09
+長水路,女子,１４歳,平泳ぎ,100,1:13.96
+短水路,男子,１５〜１６歳,自由形,100,50.84
+長水路,男子,１５〜１６歳,自由形,100,52.66
+短水路,女子,１５〜１６歳,自由形,100,57.14
+長水路,女子,１５〜１６歳,自由形,100,57.95
+短水路,男子,１５〜１６歳,平泳ぎ,100,1:02.37
+長水路,男子,１５〜１６歳,平泳ぎ,100,1:04.72
+短水路,女子,１５〜１６歳,平泳ぎ,100,1:10.66
+長水路,女子,１５〜１６歳,平泳ぎ,100,1:12.16
+短水路,男子,１１歳,バタフライ,100,1:06.52
+長水路,男子,１１歳,バタフライ,100,1:08.34
+短水路,女子,１１歳,バタフライ,100,1:07.61
+長水路,女子,１１歳,バタフライ,100,1:08.61
+短水路,男子,１１歳,背泳ぎ,100,1:08.68
+長水路,男子,１１歳,背泳ぎ,100,1:10.93
+短水路,女子,１１歳,背泳ぎ,100,1:09.18
+長水路,女子,１１歳,背泳ぎ,100,1:11.12
+短水路,男子,１２歳,バタフライ,100,1:03.02
+長水路,男子,１２歳,バタフライ,100,1:04.50
+短水路,女子,１２歳,バタフライ,100,1:05.53
+長水路,女子,１２歳,バタフライ,100,1:06.77
+短水路,男子,１２歳,背泳ぎ,100,1:04.95
+長水路,男子,１２歳,背泳ぎ,100,1:07.66
+短水路,女子,１２歳,背泳ぎ,100,1:07.16
+長水路,女子,１２歳,背泳ぎ,100,1:09.16
+短水路,男子,１３歳,バタフライ,100,58.78
+長水路,男子,１３歳,バタフライ,100,59.84
+短水路,女子,１３歳,バタフライ,100,1:03.40
+長水路,女子,１３歳,バタフライ,100,1:04.33
+短水路,男子,１３歳,背泳ぎ,100,1:00.41
+長水路,男子,１３歳,背泳ぎ,100,1:02.93
+短水路,女子,１３歳,背泳ぎ,100,1:04.85
+長水路,女子,１３歳,背泳ぎ,100,1:06.88
+短水路,男子,CS,バタフライ,100,53.98
+長水路,男子,CS,バタフライ,100,55.76
+短水路,女子,CS,バタフライ,100,1:01.24
+長水路,女子,CS,バタフライ,100,1:02.18
+短水路,男子,CS,背泳ぎ,100,55.30
+長水路,男子,CS,背泳ぎ,100,58.30
+短水路,女子,CS,背泳ぎ,100,1:02.37
+長水路,女子,CS,背泳ぎ,100,1:04.75
+短水路,男子,１４歳,バタフライ,100,57.17
+長水路,男子,１４歳,バタフライ,100,58.31
+短水路,女子,１４歳,バタフライ,100,1:02.74
+長水路,女子,１４歳,バタフライ,100,1:03.58
+短水路,男子,１４歳,背泳ぎ,100,58.32
+長水路,男子,１４歳,背泳ぎ,100,1:01.34
+短水路,女子,１４歳,背泳ぎ,100,1:04.30
+長水路,女子,１４歳,背泳ぎ,100,1:05.83
+短水路,男子,１５〜１６歳,バタフライ,100,55.00
+長水路,男子,１５〜１６歳,バタフライ,100,56.19
+短水路,女子,１５〜１６歳,バタフライ,100,1:01.36
+長水路,女子,１５〜１６歳,バタフライ,100,1:02.19
+短水路,男子,１５〜１６歳,背泳ぎ,100,55.78
+長水路,男子,１５〜１６歳,背泳ぎ,100,58.83
+短水路,女子,１５〜１６歳,背泳ぎ,100,1:02.58
+長水路,女子,１５〜１６歳,背泳ぎ,100,1:04.76
+短水路,男子,１１歳,自由形,200,2:12.33
+長水路,男子,１１歳,自由形,200,2:15.25
+短水路,女子,１１歳,自由形,200,2:15.13
+長水路,女子,１１歳,自由形,200,2:16.26
+短水路,男子,１１歳,個人メドレー,200,2:27.10
+長水路,男子,１１歳,個人メドレー,200,2:32.77
+短水路,女子,１１歳,個人メドレー,200,2:29.58
+長水路,女子,１１歳,個人メドレー,200,2:34.15
+短水路,男子,１２歳,自由形,200,2:06.63
+長水路,男子,１２歳,自由形,200,2:08.80
+短水路,女子,１２歳,自由形,200,2:11.28
+長水路,女子,１２歳,自由形,200,2:11.87
+短水路,男子,１２歳,個人メドレー,200,2:19.63
+長水路,男子,１２歳,個人メドレー,200,2:24.08
+短水路,女子,１２歳,個人メドレー,200,2:22.46
+長水路,女子,１２歳,個人メドレー,200,2:27.42
+短水路,男子,１３歳,自由形,200,1:59.09
+長水路,男子,１３歳,自由形,200,2:02.24
+短水路,女子,１３歳,自由形,200,2:06.89
+長水路,女子,１３歳,自由形,200,2:09.59
+短水路,男子,１３歳,個人メドレー,200,2:11.87
+長水路,男子,１３歳,個人メドレー,200,2:16.78
+短水路,女子,１３歳,個人メドレー,200,2:18.89
+長水路,女子,１３歳,個人メドレー,200,2:23.36
+短水路,男子,CS,自由形,200,1:49.11
+長水路,男子,CS,自由形,200,1:53.08
+短水路,女子,CS,自由形,200,2:02.63
+長水路,女子,CS,自由形,200,2:05.37
+短水路,男子,CS,個人メドレー,200,2:01.15
+長水路,男子,CS,個人メドレー,200,2:06.01
+短水路,女子,CS,個人メドレー,200,2:13.43
+長水路,女子,CS,個人メドレー,200,2:18.73
+短水路,男子,１４歳,自由形,200,1:54.40
+長水路,男子,１４歳,自由形,200,1:58.50
+短水路,女子,１４歳,自由形,200,2:05.80
+長水路,女子,１４歳,自由形,200,2:07.82
+短水路,男子,１４歳,個人メドレー,200,2:08.49
+長水路,男子,１４歳,個人メドレー,200,2:12.45
+短水路,女子,１４歳,個人メドレー,200,2:16.89
+長水路,女子,１４歳,個人メドレー,200,2:21.84
+短水路,男子,１５〜１６歳,自由形,200,1:50.85
+長水路,男子,１５〜１６歳,自由形,200,1:54.55
+短水路,女子,１５〜１６歳,自由形,200,2:03.01
+長水路,女子,１５〜１６歳,自由形,200,2:05.38
+短水路,男子,１５〜１６歳,個人メドレー,200,2:03.07
+長水路,男子,１５〜１６歳,個人メドレー,200,2:07.57
+短水路,女子,１５〜１６歳,個人メドレー,200,2:15.34
+長水路,女子,１５〜１６歳,個人メドレー,200,2:20.52
+短水路,男子,１０歳以下,個人メドレー,200,2:38.25
+長水路,男子,１０歳以下,個人メドレー,200,2:43.76
+短水路,女子,１０歳以下,個人メドレー,200,2:38.56
+長水路,女子,１０歳以下,個人メドレー,200,2:43.79
+短水路,男子,１３歳,平泳ぎ,200,2:22.48
+長水路,男子,１３歳,平泳ぎ,200,2:29.15
+短水路,女子,１３歳,平泳ぎ,200,2:34.64
+長水路,女子,１３歳,平泳ぎ,200,2:38.66
+短水路,男子,CS,平泳ぎ,200,2:11.85
+長水路,男子,CS,平泳ぎ,200,2:18.04
+短水路,女子,CS,平泳ぎ,200,2:29.98
+長水路,女子,CS,平泳ぎ,200,2:34.21
+短水路,男子,１４歳,平泳ぎ,200,2:19.22
+長水路,男子,１４歳,平泳ぎ,200,2:24.09
+短水路,女子,１４歳,平泳ぎ,200,2:34.22
+長水路,女子,１４歳,平泳ぎ,200,2:37.61
+短水路,男子,１５〜１６歳,平泳ぎ,200,2:13.48
+長水路,男子,１５〜１６歳,平泳ぎ,200,2:19.59
+短水路,女子,１５〜１６歳,平泳ぎ,200,2:31.29
+長水路,女子,１５〜１６歳,平泳ぎ,200,2:34.60
+短水路,男子,１３歳,バタフライ,200,2:11.06
+長水路,男子,１３歳,バタフライ,200,2:15.02
+短水路,女子,１３歳,バタフライ,200,2:20.06
+長水路,女子,１３歳,バタフライ,200,2:22.86
+短水路,男子,CS,バタフライ,200,1:59.20
+長水路,男子,CS,バタフライ,200,2:03.03
+短水路,女子,CS,バタフライ,200,2:14.17
+長水路,女子,CS,バタフライ,200,2:16.23
+短水路,男子,１４歳,バタフライ,200,2:06.33
+長水路,男子,１４歳,バタフライ,200,2:10.16
+短水路,女子,１４歳,バタフライ,200,2:17.47
+長水路,女子,１４歳,バタフライ,200,2:20.91
+短水路,男子,１５〜１６歳,バタフライ,200,2:01.07
+長水路,男子,１５〜１６歳,バタフライ,200,2:04.64
+短水路,女子,１５〜１６歳,バタフライ,200,2:14.58
+長水路,女子,１５〜１６歳,バタフライ,200,2:17.04
+短水路,男子,１３歳,背泳ぎ,200,2:11.14
+長水路,男子,１３歳,背泳ぎ,200,2:16.50
+短水路,女子,１３歳,背泳ぎ,200,2:19.70
+長水路,女子,１３歳,背泳ぎ,200,2:22.50
+短水路,男子,CS,背泳ぎ,200,2:00.95
+長水路,男子,CS,背泳ぎ,200,2:06.20
+短水路,女子,CS,背泳ぎ,200,2:14.43
+長水路,女子,CS,背泳ぎ,200,2:18.16
+短水路,男子,１４歳,背泳ぎ,200,2:06.98
+長水路,男子,１４歳,背泳ぎ,200,2:12.25
+短水路,女子,１４歳,背泳ぎ,200,2:17.79
+長水路,女子,１４歳,背泳ぎ,200,2:21.39
+短水路,男子,１５〜１６歳,背泳ぎ,200,2:01.85
+長水路,男子,１５〜１６歳,背泳ぎ,200,2:07.41
+短水路,女子,１５〜１６歳,背泳ぎ,200,2:14.84
+長水路,女子,１５〜１６歳,背泳ぎ,200,2:18.17
+短水路,男子,１０歳以下,フリーリレー,200,2:18.44
+長水路,男子,１０歳以下,フリーリレー,200,2:21.84
+短水路,女子,１０歳以下,フリーリレー,200,2:18.71
+長水路,女子,１０歳以下,フリーリレー,200,2:21.91
+短水路,男子,１０歳以下,メドレーリレー,200,2:18.06
+長水路,男子,１０歳以下,メドレーリレー,200,2:23.23
+短水路,女子,１０歳以下,メドレーリレー,200,2:18.67
+長水路,女子,１０歳以下,メドレーリレー,200,2:24.08
+短水路,男子,１１〜１２歳,フリーリレー,200,1:51.02
+長水路,男子,１１〜１２歳,フリーリレー,200,1:54.17
+短水路,女子,１１〜１２歳,フリーリレー,200,2:02.01
+長水路,女子,１１〜１２歳,フリーリレー,200,1:58.26
+短水路,男子,１１〜１２歳,メドレーリレー,200,2:02.16
+長水路,男子,１１〜１２歳,メドレーリレー,200,2:07.45
+短水路,女子,１１〜１２歳,メドレーリレー,200,2:05.42
+長水路,女子,１１〜１２歳,メドレーリレー,200,2:11.16
+短水路,男子,１３歳,自由形,400,4:12.01
+長水路,男子,１３歳,自由形,400,4:18.21
+短水路,女子,１３歳,自由形,400,4:25.91
+長水路,女子,１３歳,自由形,400,4:31.59
+短水路,男子,CS,自由形,400,3:51.32
+長水路,男子,CS,自由形,400,4:00.43
+短水路,女子,CS,自由形,400,4:17.40
+長水路,女子,CS,自由形,400,4:22.95
+短水路,男子,CS,個人メドレー,400,4:17.38
+長水路,男子,CS,個人メドレー,400,4:30.08
+短水路,女子,CS,個人メドレー,400,4:48.43
+長水路,女子,CS,個人メドレー,400,4:54.00
+短水路,男子,１４歳,自由形,400,4:04.09
+長水路,男子,１４歳,自由形,400,4:11.89
+短水路,女子,１４歳,自由形,400,4:24.24
+長水路,女子,１４歳,自由形,400,4:28.81
+短水路,男子,１４歳,個人メドレー,400,4:32.55
+長水路,男子,１４歳,個人メドレー,400,4:43.27
+短水路,女子,１４歳,個人メドレー,400,4:54.18
+長水路,女子,１４歳,個人メドレー,400,5:02.36
+短水路,男子,１５〜１６歳,自由形,400,3:54.64
+長水路,男子,１５〜１６歳,自由形,400,4:03.19
+短水路,女子,１５〜１６歳,自由形,400,4:17.62
+長水路,女子,１５〜１６歳,自由形,400,4:23.02
+短水路,男子,１５〜１６歳,個人メドレー,400,4:21.68
+長水路,男子,１５〜１６歳,個人メドレー,400,4:32.73
+短水路,女子,１５〜１６歳,個人メドレー,400,4:49.17
+長水路,女子,１５〜１６歳,個人メドレー,400,4:55.24
+短水路,男子,14歳以下,自由形,1500,16:05.38
+長水路,男子,14歳以下,自由形,1500,16:32.91
+短水路,女子,14歳以下,自由形,800,8:55.25
+長水路,女子,14歳以下,自由形,800,9:04.48
+短水路,男子,15〜16歳,自由形,1500,15:43.74
+長水路,男子,15〜16歳,自由形,1500,16:11.27
+短水路,女子,15〜16歳,自由形,800,8:52.78
+長水路,女子,15〜16歳,自由形,800,9:01.92
+短水路,男子,CS,自由形,1500,15:25.72
+長水路,男子,CS,自由形,1500,15:59.55
+短水路,女子,CS,自由形,800,8:50.44
+長水路,女子,CS,自由形,800,9:01.21
+短水路,男子,１３〜１４歳,フリーリレー,400,3:39.11
+長水路,男子,１３〜１４歳,フリーリレー,400,3:47.43
+短水路,女子,１３〜１４歳,フリーリレー,400,3:58.07
+長水路,女子,１３〜１４歳,フリーリレー,400,4:05.02
+短水路,男子,１３〜１４歳,メドレーリレー,400,4:00.91
+長水路,男子,１３〜１４歳,メドレーリレー,400,4:11.66
+短水路,女子,１３〜１４歳,メドレーリレー,400,4:22.11
+長水路,女子,１３〜１４歳,メドレーリレー,400,4:31.42
+短水路,男子,CS,フリーリレー,400,3:25.51
+長水路,男子,CS,フリーリレー,400,3:32.36
+短水路,女子,CS,フリーリレー,400,3:51.40
+長水路,女子,CS,フリーリレー,400,3:57.70
+短水路,男子,CS,メドレーリレー,400,3:44.17
+長水路,男子,CS,メドレーリレー,400,3:54.22
+短水路,女子,CS,メドレーリレー,400,4:13.41
+長水路,女子,CS,メドレーリレー,400,4:22.01
+短水路,男子,９歳以下,個人メドレー,200,2:43.24
+長水路,男子,９歳以下,個人メドレー,200,2:48.92
+短水路,男子,１０歳,個人メドレー,200,2:37.35
+長水路,男子,１０歳,個人メドレー,200,2:42.01
+短水路,女子,９歳以下,個人メドレー,200,2:47.05
+長水路,女子,９歳以下,個人メドレー,200,2:52.41
+短水路,男子,１３歳,個人メドレー,400,4:38.88
+長水路,男子,１３歳,個人メドレー,400,4:50.17
+短水路,女子,１３歳,個人メドレー,400,4:58.10
+長水路,女子,１３歳,個人メドレー,400,5:04.07`;
+
+    const AGE_GROUPS_INDIVIDUAL = ['9歳以下', '10歳', '11歳', '12歳', '13歳', '14歳', '15~16歳', 'CS'];
+    const STYLES_INDIVIDUAL = ['自由形', '背泳ぎ', '平泳ぎ', 'バタフライ', '個人メドレー'];
+    const AGE_GROUPS_RELAY = ['10歳以下', '11~12歳', '13~14歳', 'CS'];
+    const STYLES_RELAY = ['フリーリレー', 'メドレーリレー'];
+
+    function App() {
+      const [data, setData] = useState([]);
+      const [activeTab, setActiveTab] = useState('個人');
+      const [poolType, setPoolType] = useState('短水路');
+      const [gender, setGender] = useState('男子');
+      const [ageGroup, setAgeGroup] = useState('CS');
+      const [style, setStyle] = useState('自由形');
+      const [distance, setDistance] = useState('');
+      const [userTime, setUserTime] = useState('');
+
+      useEffect(() => {
+        if (activeTab === '個人') {
+          if (!AGE_GROUPS_INDIVIDUAL.includes(ageGroup)) setAgeGroup('CS');
+          if (!STYLES_INDIVIDUAL.includes(style)) setStyle('自由形');
+        } else {
+          if (!AGE_GROUPS_RELAY.includes(ageGroup)) setAgeGroup('CS');
+          if (!STYLES_RELAY.includes(style)) setStyle('フリーリレー');
+        }
+      }, [activeTab]);
+
+      useEffect(() => {
+        const lines = DEFAULT_CSV_DATA.split(/\r?\n/).filter(line => line.trim() !== '');
+        if (lines.length < 2) return;
+
+        const parsedData = lines.slice(1).map(line => {
+          const [pool, gen, ageRaw, sty, distRaw, time] = line.split(',').map(s => s?.trim().replace(/^"|"$/g, '') || '');
+          
+          const toHalfWidth = (str) => {
+            if(!str) return '';
+            return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+          };
+          
+          const age = toHalfWidth(ageRaw);
+          const dist = toHalfWidth(distRaw);
+
+          let normalizedAge = age;
+          if (age.includes('10歳以下') || age === '10以下') normalizedAge = '10歳以下,9歳以下,10歳';
+          else if (age.includes('9歳以下') || age === '9以下') normalizedAge = '9歳以下';
+          else if (age.includes('14歳以下') || age === '14以下') normalizedAge = '13歳,14歳'; 
+          else if (age.includes('11') && age.includes('12')) normalizedAge = '11~12歳,11歳,12歳';
+          else if (age.includes('13') && age.includes('14')) normalizedAge = '13~14歳,13歳,14歳';
+          else if (age.includes('15') && age.includes('16')) normalizedAge = '15~16歳';
+          else if (age.includes('CS') || age.toLowerCase().includes('cs') || age.includes('18')) normalizedAge = 'CS';
+          else if (age.includes('10')) normalizedAge = '10歳';
+          else if (age.includes('11')) normalizedAge = '11歳';
+          else if (age.includes('12')) normalizedAge = '12歳';
+          else if (age.includes('13')) normalizedAge = '13歳';
+          else if (age.includes('14')) normalizedAge = '14歳';
+          
+          let normalizedStyle = sty;
+          if (sty.includes('フリーリレー') || (sty.includes('継') && !sty.includes('メドレー')) || sty.toLowerCase() === 'fr') {
+            if (sty.includes('リレー') || sty.includes('継')) normalizedStyle = 'フリーリレー';
+            else normalizedStyle = '自由形';
+          }
+          if (sty.includes('メドレーリレー') || sty.includes('MR')) normalizedStyle = 'メドレーリレー';
+          else if (sty.includes('個') || sty.toLowerCase().includes('im')) normalizedStyle = '個人メドレー';
+          else if (sty.includes('自') || sty.toLowerCase() === 'fr' || sty.toLowerCase() === 'free') normalizedStyle = '自由形';
+          else if (sty.includes('背') || sty.toLowerCase() === 'ba' || sty.toLowerCase() === 'back') normalizedStyle = '背泳ぎ';
+          else if (sty.includes('平') || sty.toLowerCase() === 'br' || sty.toLowerCase() === 'breast') normalizedStyle = '平泳ぎ';
+          else if (sty.includes('バ') || sty.toLowerCase() === 'fly' || sty.toLowerCase() === 'bu') normalizedStyle = 'バタフライ';
+          
+          let cleanDist = dist.replace(/[^0-9x×]/gi, '');
+          if (cleanDist.includes('4x50') || cleanDist.includes('4×50')) cleanDist = '200';
+          if (cleanDist.includes('4x100') || cleanDist.includes('4×100')) cleanDist = '400';
+          cleanDist = cleanDist.replace(/[^0-9]/g, '');
+
+          return { pool, gender: gen, age: normalizedAge, style: normalizedStyle, distance: cleanDist, time };
+        }).flatMap(item => {
+          if (item.age && item.age.includes(',')) return item.age.split(',').map(a => ({ ...item, age: a }));
+          return item;
+        });
+
+        setData(parsedData);
+      }, []);
+
+      const filteredData = useMemo(() => {
+        return data.filter(d => 
+          d.pool === poolType && d.gender === gender && d.age === ageGroup && d.style === style
+        );
+      }, [data, poolType, gender, ageGroup, style]);
+
+      const availableDistances = useMemo(() => {
+        return [...new Set(filteredData.map(d => d.distance))].filter(Boolean).sort((a, b) => Number(a) - Number(b));
+      }, [filteredData]);
+
+      useEffect(() => {
+        if (availableDistances.length > 0 && !availableDistances.includes(distance)) {
+          setDistance(availableDistances[0]);
+        } else if (availableDistances.length === 0) {
+          setDistance('');
+        }
+      }, [availableDistances, distance]);
+
+      const targetRecord = filteredData.find(d => d.distance === distance);
+
+      const formatTargetTime = (timeStr) => {
+        if (!timeStr || timeStr === '--') return '--';
+        if (!timeStr.includes('.')) return `${timeStr}.00`;
+        const [seconds, milliseconds] = timeStr.split('.');
+        if (milliseconds.length === 1) return `${seconds}.${milliseconds}0`;
+        return timeStr;
+      };
+
+      const displayTargetTime = targetRecord ? formatTargetTime(targetRecord.time) : '--';
+
+      const timeToSeconds = (timeStr) => {
+        if (!timeStr || timeStr === '--') return null;
+        const parts = timeStr.split(':');
+        let minutes = 0, secondsAndMs = timeStr;
+        if (parts.length === 2) {
+          minutes = parseInt(parts[0], 10);
+          secondsAndMs = parts[1];
+        }
+        return minutes * 60 + parseFloat(secondsAndMs);
+      };
+      
+      const secondsToTime = (sec) => {
+         const m = Math.floor(sec / 60);
+         const s = (sec % 60).toFixed(2);
+         if (m > 0) return `${m}:${s.padStart(5, '0')}`;
+         return s;
+      };
+
+      let relayAverageStr = null;
+      if (activeTab === 'リレー' && style === 'フリーリレー' && displayTargetTime !== '--') {
+        const totalSec = timeToSeconds(displayTargetTime);
+        if (totalSec) {
+           const avgSec = Math.floor((totalSec / 4) * 100) / 100;
+           relayAverageStr = secondsToTime(avgSec);
+        }
+      }
+
+      const calculateDifference = () => {
+        if (!displayTargetTime || displayTargetTime === '--' || !userTime) return null;
+        const targetSec = timeToSeconds(displayTargetTime);
+        const userSec = timeToSeconds(userTime);
+        if (targetSec === null || isNaN(userSec)) return null;
+        const diff = userSec - targetSec;
+        return { value: Math.abs(diff).toFixed(2), isAchieved: diff <= 0 };
+      };
+
+      const diff = calculateDifference();
+      const themeColor = poolType === '短水路' ? 'blue' : 'emerald';
+      const currentAgeGroups = activeTab === '個人' ? AGE_GROUPS_INDIVIDUAL : AGE_GROUPS_RELAY;
+      const currentStyles = activeTab === '個人' ? STYLES_INDIVIDUAL : STYLES_RELAY;
+
+      return (
+        // ↓ スマホの最新画面サイズ(100dvh)に対応しつつ、一番下にたっぷりの余白(pb-40)を追加 ↓
+        <div className="min-h-[100dvh] bg-gray-50 text-gray-800 font-sans p-4 sm:p-6 pb-40">
+          <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+            <div className={`bg-${themeColor}-600 text-white p-5 text-center transition-colors duration-300`}>
+              <h1 className="text-xl font-bold tracking-wider">JO標準記録検索</h1>
+            </div>
+
+            <div className="p-5 space-y-5">
+              <div className="flex bg-gray-100 p-1 rounded-xl">
+                {['個人', 'リレー'].map(tab => (
+                  <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === tab ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
+                    {tab}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-4">
+                <div className="flex flex-1 bg-gray-100 p-1 rounded-xl">
+                  {['短水路', '長水路'].map(type => (
+                    <button key={type} onClick={() => setPoolType(type)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${poolType === type ? `bg-white shadow text-${themeColor}-600` : 'text-gray-500 hover:text-gray-700'}`}>
+                      {type}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-1 bg-gray-100 p-1 rounded-xl">
+                  {['男子', '女子'].map(g => (
+                    <button key={g} onClick={() => setGender(g)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${gender === g ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">年齢区分</label>
+                  <select value={ageGroup} onChange={e => setAgeGroup(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium appearance-none">
+                    {currentAgeGroups.map(age => <option key={age} value={age}>{age}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">種目</label>
+                  <select value={style} onChange={e => setStyle(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium appearance-none">
+                    {currentStyles.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">距離 (m)</label>
+                  <select value={distance} onChange={e => setDistance(e.target.value)} className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium appearance-none">
+                    {availableDistances.length > 0 ? availableDistances.map(dist => <option key={dist} value={dist}>{dist}m</option>) : <option value="">データなし</option>}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className={`bg-${themeColor}-50/50 p-6 text-center border-t border-${themeColor}-100 relative`}>
+              <p className="text-xs font-bold text-gray-500 mb-1 tracking-widest">標準記録</p>
+              <div className={`text-5xl font-black tracking-tight text-${themeColor}-700 drop-shadow-sm`}>
+                {displayTargetTime}
+              </div>
+              {relayAverageStr && (
+                <div className={`mt-3 inline-block px-3 py-1 bg-${themeColor}-100 text-${themeColor}-800 rounded-full text-sm font-bold`}>
+                  1人あたり平均: {relayAverageStr}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-white border-t border-gray-100">
+              <label className="block text-xs font-bold text-gray-500 mb-2 text-center">自分のタイムを入力して比較</label>
+              <!-- ↓ スマホでテンキーが開きやすいように inputMode="text" を明記し、フォントサイズも16px(text-base)を保証 ↓ -->
+              <input type="text" inputMode="text" placeholder="例: 1:04.55 または 31.02" value={userTime} onChange={e => setUserTime(e.target.value)} className="w-full text-center text-base sm:text-lg bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium mb-4"/>
+              
+              {diff && (
+                <div className={`p-4 rounded-xl text-center border ${diff.isAchieved ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>
+                  {diff.isAchieved ? (
+                    <div className="font-bold">🎉 突破しています！<br/><span className="text-xl">-{diff.value}秒</span></div>
+                  ) : (
+                    <div className="font-bold">あと <span className="text-2xl mx-1">{diff.value}</span> 秒</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
